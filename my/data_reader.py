@@ -1,11 +1,12 @@
 # SCADA file data reader
-import os
 import csv
 import datetime
-#from dateparser import parse
+import logging
+import os
+# from dateparser import parse
 import pickle
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 StampWorld = 'Timestamp', 'DATA QUALITY'
@@ -49,7 +50,13 @@ def noop(*args, **kwargs):
 
 
 # VerboseFunc = noop
-VerboseFunc = print
+# VerboseFunc = print
+def VerboseFunc(*args):
+    a = ''
+    for arg in args:
+        a += str(arg)
+    logging.info(a)
+
 
 
 class ScadaDataFile(object):
@@ -91,17 +98,17 @@ class ScadaDataFile(object):
 
             for tag in self.tags:
                 VerboseFunc(tag)
-            print('-' * 10, 'tags total:', len(self.tags))
-            print("Start from:", self.time_start)
-            print("Up to:", self.time_stop)
+            VerboseFunc('-' * 10, 'tags total: ', len(self.tags))
+            VerboseFunc("Start from: ", self.time_start)
+            VerboseFunc("Up to: ", self.time_stop)
             self.time_delta = self.time_stop - self.time_start
-            print("Seconds:", self.time_delta.total_seconds())
+            VerboseFunc("Seconds: ", self.time_delta.total_seconds())
 
         data_width = len(self.tags)
         data_lenth = int(self.time_delta.total_seconds()) + 1
         mesivo = np.zeros((data_lenth, data_width), dtype=np.float64)
         filled_data = np.zeros((data_lenth, data_width), dtype=np.bool)
-        print("Data Size:", mesivo.size)
+        VerboseFunc("Data Size:", mesivo.size)
         tags_list = list(self.tags)
         tags_list.sort()
         # reset csv reader
@@ -125,11 +132,11 @@ class ScadaDataFile(object):
                     filled_data[second_from_start, tag_position] = True
                     mesivo[second_from_start, tag_position] = float(row[1])
                 except IndexError:
-                    print("Start time:", self.time_start)
-                    print("Stop time:", self.time_stop)
-                    print("Row:", row)
-                    print(dt)
-                    print("seconds=", second_from_start)
+                    logging.error("Start time:", self.time_start)
+                    logging.error("Stop time:", self.time_stop)
+                    logging.error("Row:", row)
+                    logging.error(dt)
+                    logging.error("seconds=", second_from_start)
                     continue
 
         # print(mesivo)
@@ -163,6 +170,7 @@ class ScadaDataFile(object):
     def save_data(self, filename):
         with open(filename + '.data', mode='wb') as f:
             np.save(f, self.data)
+            logging.info("Data file '%s' saved" % f.name)
         with open(filename + '.meta', mode='wb') as f:
             pickler = pickle.Pickler(f)
             pickler.dump(self.tags_list)
@@ -170,6 +178,7 @@ class ScadaDataFile(object):
             pickler.dump(self.time_start)
             pickler.dump(self.time_stop)
             pickler.dump(self.time_delta)
+            logging.info("Metainfo file '%s' saved" % f.name)
             # pickler.dump(self._path_to_file)
 
         self._not_saved = False
