@@ -64,55 +64,59 @@ class LeakTesterModel(object):
 
         self.NUM_OF_FRAMES = self.data.shape[0] - self.TIMESTEPS - 1 - self.VALIDATION_PART
 
+        # train data
         self.X = np.zeros((self.BATCH_SIZE * self.NUM_OF_FRAMES, self.TIMESTEPS, self.DATA_DIM), dtype=np.float64)
         self.Y = np.zeros((self.BATCH_SIZE * self.NUM_OF_FRAMES, self.DATA_DIM), dtype=np.float64)
 
         for frame_ in range(self.NUM_OF_FRAMES):
+            # error here!
             # input_string_number =
             self.X[frame_] = self.data[frame_:frame_ + self.TIMESTEPS, ...]
             self.Y[frame_] = self.data[frame_ + self.TIMESTEPS + 1]
 
+        # validate data
+        self.X_val = np.zeros((self.BATCH_SIZE * self.VALIDATION_PART, self.TIMESTEPS, self.DATA_DIM), dtype=np.float64)
+        self.Y_val = np.zeros((self.BATCH_SIZE * self.VALIDATION_PART, self.DATA_DIM), dtype=np.float64)
+
+        for frame_ in range(self.NUM_OF_FRAMES, self.NUM_OF_FRAMES + self.VALIDATION_PART):
+            self.X_val[frame_] = data[frame_:frame_ + self.TIMESTEPS, ...]
+            self.Y_val[frame_] = data[frame_ + self.TIMESTEPS + 1]
+
+
         logging.info('Input data prepared successfully')
 
-
-if False:
-
-    X_val = np.zeros((BATCH_SIZE * VALIDATION_PART, TIMESTEPS, DATA_DIM), dtype=np.float64)
-    Y_val = np.zeros((BATCH_SIZE * VALIDATION_PART, DATA_DIM), dtype=np.float64)
-
-    for frame_ in range(NUM_OF_FRAMES, NUM_OF_FRAMES + VALIDATION_PART):
-        X[frame_] = data[frame_:frame_ + TIMESTEPS, ...]
-        Y[frame_] = data[frame_ + TIMESTEPS + 1]
-
-    model = Sequential()
-    model.add(LSTM(DATA_DIM * 2,
-                   return_sequences=True,
-                   stateful=True,
-                   batch_input_shape=(BATCH_SIZE, TIMESTEPS, DATA_DIM
-                                      )
-                   )
-              )
-    model.add(LSTM(DATA_DIM * 2,
-                   return_sequences=True,
-                   stateful=True
-                   )
-              )
-    model.add(LSTM(DATA_DIM * 2,
-                   stateful=True
-                   )
-              )
-    model.add(Dense(DATA_DIM,
-                    activation='sigmoid'
-                    )
-              )
-    model.compile(loss='mean_absolute_percentage_error',
-                  optimizer='adagrad',
-                  metrics=['accuracy']
+    def compile(self):
+        self.model = Sequential()
+        model = self.model
+        model.add(LSTM(self.DATA_DIM * 2,
+                       return_sequences=True,
+                       stateful=True,
+                       batch_input_shape=(self.BATCH_SIZE, self.TIMESTEPS, self.DATA_DIM
+                                          )
+                       )
                   )
+        model.add(LSTM(self.DATA_DIM * 2,
+                       return_sequences=True,
+                       stateful=True
+                       )
+                  )
+        model.add(LSTM(self.DATA_DIM * 2,
+                       stateful=True
+                       )
+                  )
+        model.add(Dense(self.DATA_DIM,
+                        activation='sigmoid'
+                        )
+                  )
+        model.compile(loss='mean_absolute_percentage_error',
+                      optimizer='adagrad',
+                      metrics=['accuracy']
+                      )
+        logging.info('Model compiled successfully')
 
-    model.fit(X, Y,
-              batch_size=BATCH_SIZE,
-              epochs=5,
-              shuffle=False,
-              validation_data=(X_val, Y_val)
-              )
+        model.fit(self.X, self.Y,
+                  batch_size=self.BATCH_SIZE,
+                  epochs=5,
+                  shuffle=False,
+                  validation_data=(self.X_val, self.Y_val)
+                  )
