@@ -163,14 +163,15 @@ class ModelWidget(tk.LabelFrame):
         logging.debug("Let's create model")
         MODEL.analyze(DATA,
                       input_tags=DATA.tags_list[1:-1],
-                      validation=100,
                       timesteps=100,
-                      batch_size=20,
-                      num_classes=2)
+                      num_classes=len(DATA.tags_list[1:-1]),  # грязный хак
+                      validation_tail=100, )
+        MODEL.compile()
 
 
     def DoTrainModel(self):
         logging.debug("Let's train model")
+        MODEL.train()
 
     def DoSaveModel(self):
         logging.debug("Let's save model")
