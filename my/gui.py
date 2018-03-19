@@ -18,12 +18,10 @@ logging.basicConfig(filename='test.log',
 
 SCADA_EXPORT_FILENAMES = (("SCADA txt data files", "*.txt"),)
 DATAFILE_NAMES = (("LEAK Tester meta file", "*.meta"),)
+MODELFILE_NAMES = (("LEAK Tester model file", "*.h5"),)
 
 DATA = data_reader.ScadaDataFile()
 MODEL = model.LeakTesterModel()
-
-
-
 
 
 class Application(tk.Frame):
@@ -89,7 +87,7 @@ class SourceDataWidget(tk.LabelFrame):
     def DoSaveData(self):
         logging.debug("Lets save data!")
         filename = asksaveasfilename(title='Save data to file',
-                                     filetypes = DATAFILE_NAMES)
+                                     filetypes=DATAFILE_NAMES)
         if filename:
             f = os.path.splitext(filename)[0]
             try:
@@ -99,20 +97,18 @@ class SourceDataWidget(tk.LabelFrame):
                 messagebox.showerror("Save data", "Failed to save file \n'%s'" % filename)
                 return
 
-
     def DoImportData(self):
         logging.debug("Lets import data!")
         filename = askopenfilename(title="Import data from file:",
-                                   filetypes = SCADA_EXPORT_FILENAMES)
+                                   filetypes=SCADA_EXPORT_FILENAMES)
         if filename:
             try:
-                #self.settings["template"].set(filename)
+                # self.settings["template"].set(filename)
                 self.data.import_data_from_csv(filename)
             except FileNotFoundError or IOError:
                 logging.error("Failed to read file '%s'" % filename)
                 messagebox.showerror("Open Source File", "Failed to read file \n'%s'" % filename)
                 return
-
 
     def DoLoadData(self):
         logging.debug("Lets load data!")
@@ -126,7 +122,6 @@ class SourceDataWidget(tk.LabelFrame):
                 messagebox.showerror("Load data", "Failed to load file \n'%s'" % filename)
                 return
 
-
     def DoShowData(self):
         logging.debug("Lets load data!")
         self.data.show_me_data()
@@ -136,7 +131,6 @@ class ModelWidget(tk.LabelFrame):
     def __init__(self, master=None):
         super().__init__(master, text='Model')
         self.create_widgets()
-
 
     def create_widgets(self):
         self.importDataButton = tk.Button(self)
@@ -168,16 +162,33 @@ class ModelWidget(tk.LabelFrame):
                       validation_tail=100, )
         MODEL.compile()
 
-
     def DoTrainModel(self):
         logging.debug("Let's train model")
         MODEL.train()
 
     def DoSaveModel(self):
         logging.debug("Let's save model")
+        filename = asksaveasfilename(title='Save model to file',
+                                     filetypes=MODELFILE_NAMES)
+        if filename:
+            try:
+                MODEL.savemodel(filename)
+            except FileExistsError or IOError:
+                logging.error("Failed to save file '%s'" % filename)
+                messagebox.showerror("Save model", "Failed to save file \n'%s'" % filename)
+                return
 
     def DoLoadModel(self):
         logging.debug("Let's load model")
+        filename = askopenfilename(title='Load model from file',
+                                   filetypes=MODELFILE_NAMES)
+        if filename:
+            try:
+                MODEL.loadmodel(filename)
+            except FileExistsError or IOError:
+                logging.error("Failed to load file '%s'" % filename)
+                messagebox.showerror("Save model", "Failed to save file \n'%s'" % filename)
+                return
 
 
 root = tk.Tk()

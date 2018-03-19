@@ -185,14 +185,20 @@ class ScadaDataFile(object):
 
     def load_data(self, filename):
         with open(filename + '.data', mode='rb') as f:
+            logging.info("loading data from '%s' file" % f)
             self.data = np.load(f)
         with open(filename + '.meta', mode='rb') as f:
+            logging.info("loading meta information from '%s' file " % f)
             unpickler = pickle.Unpickler(f)
             self.tags_list = unpickler.load()
+            logging.debug("tag list %s" % self.tags_list)
             self.tags = unpickler.load()
             self.time_start = unpickler.load()
+            logging.info("Data starts from %s" % self.time_start)
             self.time_stop = unpickler.load()
+            logging.info("Data ends at %s" % self.time_stop)
             self.time_delta = unpickler.load()
+            logging.debug("Data lenth %i seconds" % self.time_delta.total_seconds())
             # self._path_to_file = unpickler.load()
 
     def show_me_data(self, tag_names=None, reduced=False):

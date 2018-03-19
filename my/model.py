@@ -4,14 +4,46 @@ import numpy as np
 from keras.layers import Dense
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
+from keras.models import load_model
 
 from data_reader import VerboseFunc
 
 
-class LeakTesterModel(object):
+class CommonModel(object):
+
     def __init__(self):
-        self.saved = True
+        self.saved = False
+        self.trained = False
         pass
+
+    def train(self, *args, **kwargs):
+        """Train compiled model"""
+        logging.warning("Method is not defined!")
+        pass
+
+    def savemodel(self, filepath):
+        """save model to file"""
+        # https://keras.io/getting-started/faq/#how-can-i-save-a-keras-model
+        logging.info("saving model to '%s'" % filepath)
+        try:
+            self.model.save(filepath)
+            self.saved = True
+        except AttributeError:
+            logging.error('Model was not initialised properly!')
+        except IOError:
+            logging.error("Input-output error! File: '%s'" % filepath)
+
+    def loadmodel(self, filepath):
+        """Loadmodel from file
+        returns a compiled model"""
+        try:
+            self.model = load_model(filepath)
+            self.saved = True
+        except IOError:
+            logging.error("Input-output error! File: '%s'" % filepath)
+
+
+class LeakTesterModel(CommonModel):
 
     def analyze(self,
                 dataSource,
@@ -70,7 +102,7 @@ class LeakTesterModel(object):
         self.data = 1 / data
 
         self.NUM_OF_FRAMES = self.data.shape[0] - timesteps - 1 - validation_tail
-        logging.info("Input data will split into %i frames" % self.NUM_CLASSES)
+        logging.info("Input data will split into %i frames" % self.NUM_OF_FRAMES)
 
         self.BATCH_SIZE = self.TIMESTEPS * 10  # взято от балды TODO: вынести настройку в ГИП
 
@@ -123,12 +155,14 @@ class LeakTesterModel(object):
                       metrics=['accuracy']
                       )
         logging.info('Model compiled successfully')
-        logging.info(str(model.layers))
+        logging.info(model.summary(line_length=50))
 
     def train(self):
+        self.saved = False
         self.model.fit(self.X, self.Y,
                   batch_size=self.BATCH_SIZE,
                   epochs=5,
                   shuffle=False,
                   validation_data=(self.X_val, self.Y_val)
                   )
+        self.trained = True
