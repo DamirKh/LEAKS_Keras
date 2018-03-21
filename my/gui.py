@@ -154,6 +154,8 @@ class ModelWidget(tk.LabelFrame):
         self.SaveDataButton.pack(side="top", fill='both')
 
     def DoCreateModel(self):
+        logging.debug("Let's configure model")
+        MODEL.gui_model_configure(self.master)
         logging.debug("Let's create model")
         MODEL.analyze(DATA,
                       input_tags=DATA.tags_list[1:-1],

@@ -1,4 +1,5 @@
 import logging
+import tkinter as tk
 
 import numpy as np
 from keras.layers import Dense
@@ -6,7 +7,53 @@ from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 from keras.models import load_model
 
+import tkSimpleDialog
 from data_reader import VerboseFunc
+
+
+class CommonModelConfigureGUI(tkSimpleDialog.Dialog):
+    """"Это тестовое окно для испытания диалога конфигуратора модели.
+    Не делает ничего"""
+
+    def body(self, master):
+        tk.Label(master, text="Создать диалог на основе\n этого необходимо.").grid(row=0, columnspan=2)
+
+        tk.Label(master, text="First:").grid(row=1)
+        tk.Label(master, text="Second:").grid(row=2)
+
+        self.e1 = tk.Entry(master)
+        self.e2 = tk.Entry(master)
+
+        self.e1.grid(row=1, column=1)
+        self.e2.grid(row=2, column=1)
+        return self.e1  # initial focus
+
+    def apply(self):
+        first = int(self.e1.get())
+        second = int(self.e2.get())
+        logging.info("First: %i \nSecond: %i" % (first, second))  # or something
+
+
+class LeakTesterModelConfigureGUI(tkSimpleDialog.Dialog):
+    """"Диалоговое окно конфигуратора модели LeakTesterModel"""
+
+    def body(self, master):
+        tk.Label(master, text="Создать диалог на основе\n этого необходимо.").grid(row=0, columnspan=2)
+
+        tk.Label(master, text="First:").grid(row=1)
+        tk.Label(master, text="Second:").grid(row=2)
+
+        self.e1 = tk.Entry(master)
+        self.e2 = tk.Entry(master)
+
+        self.e1.grid(row=1, column=1)
+        self.e2.grid(row=2, column=1)
+        return self.e1  # initial focus
+
+    def apply(self):
+        first = int(self.e1.get())
+        second = int(self.e2.get())
+        logging.info("First: %i \nSecond: %i" % (first, second))  # or something
 
 
 class CommonModel(object):
@@ -42,7 +89,9 @@ class CommonModel(object):
         except IOError:
             logging.error("Input-output error! File: '%s'" % filepath)
 
-    def model_configure_gui(self, ):
+    def gui_model_configure(self, parent):
+        result = CommonModelConfigureGUI(parent, title="Диалог настройки модели")
+
 
 
 class LeakTesterModel(CommonModel):
