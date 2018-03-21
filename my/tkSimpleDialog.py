@@ -94,3 +94,9 @@ class Dialog(Toplevel):
     def apply(self):
 
         pass  # override
+
+
+class ModelConfigDialog(Dialog):
+    def __init__(self, parent, taglist, title=None):
+        self.taglist = taglist
+        super().__init__(parent, title=title)

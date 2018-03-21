@@ -9,9 +9,10 @@ from keras.models import load_model
 
 import tkSimpleDialog
 from data_reader import VerboseFunc
+from tkTagSelector import TagSelectorWidget
 
 
-class CommonModelConfigureGUI(tkSimpleDialog.Dialog):
+class CommonModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
     """"Это тестовое окно для испытания диалога конфигуратора модели.
     Не делает ничего"""
 
@@ -34,26 +35,35 @@ class CommonModelConfigureGUI(tkSimpleDialog.Dialog):
         logging.info("First: %i \nSecond: %i" % (first, second))  # or something
 
 
-class LeakTesterModelConfigureGUI(tkSimpleDialog.Dialog):
+class LeakTesterModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
     """"Диалоговое окно конфигуратора модели LeakTesterModel"""
 
     def body(self, master):
-        tk.Label(master, text="Создать диалог на основе\n этого необходимо.").grid(row=0, columnspan=2)
+        self.input_tagselect_widget = TagSelectorWidget(master, text='select input tags', tagslist=self.taglist)
+        self.input_tagselect_widget.grid(row=0, column=0)
 
-        tk.Label(master, text="First:").grid(row=1)
-        tk.Label(master, text="Second:").grid(row=2)
+        self.output_tagselect_widget = TagSelectorWidget(master, text='select output tags', tagslist=self.taglist,
+                                                         checked=False)
+        self.output_tagselect_widget.grid(row=0, column=1)
+
+        tk.Label(master, text="Time steps:").grid(row=2)
+        tk.Label(master, text="Batch size:").grid(row=3)
 
         self.e1 = tk.Entry(master)
         self.e2 = tk.Entry(master)
 
-        self.e1.grid(row=1, column=1)
-        self.e2.grid(row=2, column=1)
+        self.e1.grid(row=2, column=1)
+        self.e2.grid(row=3, column=1)
         return self.e1  # initial focus
 
     def apply(self):
-        first = int(self.e1.get())
-        second = int(self.e2.get())
-        logging.info("First: %i \nSecond: %i" % (first, second))  # or something
+        model_config = self.model_config = {}
+        model_config['input_tags'] = self.input_tagselect_widget.selected_tags
+        model_config['output_tags'] = self.output_tagselect_widget.selected_tags
+        model_config['time_steps'] = int(self.e1.get())
+        model_config['batch_size'] = int(self.e2.get())
+        logging.info(str(model_config))  # or something
+
 
 
 class CommonModel(object):
@@ -95,6 +105,7 @@ class CommonModel(object):
 
 
 class LeakTesterModel(CommonModel):
+    '''Simple LSTM stateless model'''
 
     def analyze(self,
                 dataSource,
@@ -217,3 +228,8 @@ class LeakTesterModel(CommonModel):
                   validation_data=(self.X_val, self.Y_val)
                   )
         self.trained = True
+
+    def gui_model_configure(self, parent, tag_list):
+        self.model_config = LeakTesterModelConfigureGUI(parent, title=self.__doc__, taglist=tag_list).model_config
+        self.saved = False
+        logging.debug(str(model_config))
