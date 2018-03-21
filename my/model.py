@@ -10,6 +10,7 @@ from keras.models import load_model
 import tkSimpleDialog
 from config_case import *
 from data_reader import VerboseFunc
+from data_slicer import slicer
 from tkTagSelector import TagSelectorWidget
 
 
@@ -122,13 +123,14 @@ class LeakTesterModel(CommonModel):
 
         # Do I really need next? YES!
         self.DATA_DIM = len(input_tags)
-        logging.debug(VerboseFunc("First layer is ", self.DATA_DIM, " neurons wide"))
+        logging.debug(VerboseFunc("First layer will get data ", self.DATA_DIM, " wide"))
 
         timesteps = self.model_config[TIME_STEPS]
         logging.info("Timesteps = %i" % timesteps)
 
-        num_classes = self.model_config[OUTPUT_TAGS]
-        logging.info("Output classes = %i" % self.NUM_CLASSES)
+        num_classes = len(self.model_config[OUTPUT_TAGS])
+        logging.debug("Output classes:")
+        [logging.debug(tag) for tag in self.model_config[OUTPUT_TAGS]]
 
         # normalize and constructing working array
         # данные переносятся из исходного массива dataSource.data
@@ -137,25 +139,17 @@ class LeakTesterModel(CommonModel):
         # ось 1 - ось данных тегов
         # форма массива, должна соответствовать исходному массиву.
         # нулевая колонка - не содержит данных. она для создания массива нужной формы
-        data = np.zeros((dataSource.data.shape[0], 1), dtype=np.float64)
-        for tag in dataSource.tags_list:
-            if tag in input_tags:
-                logging.debug("Found tag %s in input data" % tag)
-                # срез вдоль оси данных
-                tag_data = dataSource.data[..., dataSource.tags_list.index(tag)]
-                data = np.c_[data, tag_data]
-                pass
-            else:
-                logging.debug("Skip tag %s in input data" % tag)
-        # удаляем нулевую колонку: она не содержит данных
-        data = np.delete(data, 0, 1)
+        in_data = slicer(dataSource=dataSource, tags=input_tags)
+        out_data = slicer(dataSource=dataSource, tags=self.model_config[OUTPUT_TAGS])
+
 
         # normalize all data
         logging.debug('Normalising input data')
         # WARNING! DIVIDE BY ZERO!
-        self.data = 1 / data
+        in_data = 1 / in_data
+        out_data = 1 / out_data
 
-        num_of_frames = self.data.shape[0] - timesteps - 1
+        num_of_frames = in_data.shape[0] - timesteps - 1
         logging.info("Input data will split into %i frames" % num_of_frames)
 
         batch_size = self.model_config[BATCH_SIZE]  #
@@ -169,8 +163,8 @@ class LeakTesterModel(CommonModel):
         Y = np.zeros((num_of_frames, num_classes), dtype=np.float64)
 
         for frame_ in range(num_of_frames):
-            X[frame_] = self.data[frame_:frame_ + timesteps, ...]
-            Y[frame_] = self.data[frame_ + timesteps]
+            X[frame_] = in_data[frame_:frame_ + timesteps, ...]
+            Y[frame_] = out_data[frame_ + timesteps]
 
         # # validate data
         # self.X_val = np.zeros((validation_tail, self.TIMESTEPS, self.DATA_DIM), dtype=np.float64)
@@ -207,7 +201,7 @@ class LeakTesterModel(CommonModel):
                   )
         model.add(LSTM(self.DATA_DIM * 2)
                   )
-        model.add(Dense(self.model_config[OUTPUT_TAGS],
+        model.add(Dense(len(self.model_config[OUTPUT_TAGS]),
                         activation='softmax'
                         )
                   )
