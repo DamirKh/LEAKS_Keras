@@ -8,6 +8,7 @@ from keras.models import Sequential
 from keras.models import load_model
 
 import tkSimpleDialog
+from config_case import *
 from data_reader import VerboseFunc
 from tkTagSelector import TagSelectorWidget
 
@@ -58,12 +59,11 @@ class LeakTesterModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
 
     def apply(self):
         model_config = self.model_config = {}
-        model_config['input_tags'] = self.input_tagselect_widget.selected_tags
-        model_config['output_tags'] = self.output_tagselect_widget.selected_tags
-        model_config['time_steps'] = int(self.e1.get())
-        model_config['batch_size'] = int(self.e2.get())
+        model_config[INPUT_TAGS] = self.input_tagselect_widget.selected_tags
+        model_config[OUTPUT_TAGS] = self.output_tagselect_widget.selected_tags
+        model_config[TIME_STEPS] = int(self.e1.get())
+        model_config[BATCH_SIZE] = int(self.e2.get())
         logging.info(str(model_config))  # or something
-
 
 
 class CommonModel(object):
@@ -103,39 +103,31 @@ class CommonModel(object):
         result = CommonModelConfigureGUI(parent, title="Диалог настройки модели")
 
 
-
 class LeakTesterModel(CommonModel):
     '''Simple LSTM stateless model'''
 
-    def analyze(self,
-                dataSource,
-                input_tags,
-                num_classes,
-                timesteps,
-                validation_tail=100):
+    def analyze_and_train(self,
+                          dataSource,
+                          ):
         """
-
-        :type input_tags: list
-        :type dataSource: ScadaDataFile
-        input_tags - список входных тегов. Входных тегов может быть меньше чем в наличии в источнике данных.
-        Модель будет тренироваться (и анализировать) только данные в этом списке. Остальные будут проигнорированы.
-        num_classes - количество выходных классов. (вообще-то нам нужен список тэгов, которые являются выходными)
+        конфигурация уже должна быть представлена в аттрибуте
+        self.model_config
         Stacked LSTM for sequence classification. Not statefull!
         """
         self.dataSource = dataSource
 
-        assert isinstance(input_tags, type([]))
-        self.input_tags = input_tags
+        input_tags = self.model_config[INPUT_TAGS]
         logging.info("Used tag list for model:")
-        for tag in input_tags:
-            logging.info(tag)
-        self.DATA_DIM = len(self.input_tags)
-        logging.debug(VerboseFunc("First layer is ", self.DATA_DIM, "neurons wide"))
+        [logging.info(tag) for tag in input_tags]
 
-        self.TIMESTEPS = timesteps
-        logging.info("Timesteps = %i" % self.TIMESTEPS)
+        # Do I really need next? YES!
+        self.DATA_DIM = len(input_tags)
+        logging.debug(VerboseFunc("First layer is ", self.DATA_DIM, " neurons wide"))
 
-        self.NUM_CLASSES = num_classes
+        timesteps = self.model_config[TIME_STEPS]
+        logging.info("Timesteps = %i" % timesteps)
+
+        num_classes = self.model_config[OUTPUT_TAGS]
         logging.info("Output classes = %i" % self.NUM_CLASSES)
 
         # normalize and constructing working array
@@ -147,7 +139,7 @@ class LeakTesterModel(CommonModel):
         # нулевая колонка - не содержит данных. она для создания массива нужной формы
         data = np.zeros((dataSource.data.shape[0], 1), dtype=np.float64)
         for tag in dataSource.tags_list:
-            if tag in self.input_tags:
+            if tag in input_tags:
                 logging.debug("Found tag %s in input data" % tag)
                 # срез вдоль оси данных
                 tag_data = dataSource.data[..., dataSource.tags_list.index(tag)]
@@ -163,35 +155,42 @@ class LeakTesterModel(CommonModel):
         # WARNING! DIVIDE BY ZERO!
         self.data = 1 / data
 
-        self.NUM_OF_FRAMES = self.data.shape[0] - timesteps - 1 - validation_tail
-        logging.info("Input data will split into %i frames" % self.NUM_OF_FRAMES)
+        num_of_frames = self.data.shape[0] - timesteps - 1
+        logging.info("Input data will split into %i frames" % num_of_frames)
 
-        self.BATCH_SIZE = self.TIMESTEPS * 10  # взято от балды TODO: вынести настройку в ГИП
+        batch_size = self.model_config[BATCH_SIZE]  #
 
         # Делим входные данные на временнЫе наборы.
         # Ось 0 - номер набора
         # Ось 1 - в диапазоне времени [номер набора] - [номер набора + размер временного набора]
         # Ось 2 - по списку тегов
         # train data
-        self.X = np.zeros((self.NUM_OF_FRAMES, self.TIMESTEPS, self.DATA_DIM), dtype=np.float64)
-        self.Y = np.zeros((self.NUM_OF_FRAMES, self.NUM_CLASSES), dtype=np.float64)
+        X = np.zeros((num_of_frames, timesteps, self.DATA_DIM), dtype=np.float64)
+        Y = np.zeros((num_of_frames, num_classes), dtype=np.float64)
 
-        for frame_ in range(self.NUM_OF_FRAMES):
-            # error here!
-            # input_string_number =
-            self.X[frame_] = self.data[frame_:frame_ + self.TIMESTEPS, ...]
-            self.Y[frame_] = self.data[frame_ + self.TIMESTEPS]
+        for frame_ in range(num_of_frames):
+            X[frame_] = self.data[frame_:frame_ + timesteps, ...]
+            Y[frame_] = self.data[frame_ + timesteps]
 
-        # validate data
-        self.X_val = np.zeros((validation_tail, self.TIMESTEPS, self.DATA_DIM), dtype=np.float64)
-        self.Y_val = np.zeros((validation_tail, self.NUM_CLASSES), dtype=np.float64)
-
-        for frame_ in range(self.NUM_OF_FRAMES, self.NUM_OF_FRAMES + validation_tail):
-            self.X_val[frame_ - self.NUM_OF_FRAMES] = self.data[frame_:frame_ + self.TIMESTEPS, ...]
-            self.Y_val[frame_ - self.NUM_OF_FRAMES] = self.data[frame_ + self.TIMESTEPS]
-
+        # # validate data
+        # self.X_val = np.zeros((validation_tail, self.TIMESTEPS, self.DATA_DIM), dtype=np.float64)
+        # self.Y_val = np.zeros((validation_tail, self.NUM_CLASSES), dtype=np.float64)
+        #
+        # for frame_ in range(self.NUM_OF_FRAMES, self.NUM_OF_FRAMES + validation_tail):
+        #     self.X_val[frame_ - self.NUM_OF_FRAMES] = self.data[frame_:frame_ + self.TIMESTEPS, ...]
+        #     self.Y_val[frame_ - self.NUM_OF_FRAMES] = self.data[frame_ + self.TIMESTEPS]
 
         logging.info('Input data prepared successfully')
+
+        self.saved = False
+        self.compile()
+        self.model.fit(X, Y,
+                       batch_size=batch_size,
+                       epochs=5,  # todo: GUI
+                       shuffle=False,
+                       validation_split=0.2  # todo: GUI
+                       )
+        self.trained = True
 
     def compile(self):
         # expected input data shape for this model: (batch_size, timesteps, data_dim)
@@ -200,7 +199,7 @@ class LeakTesterModel(CommonModel):
         model = self.model
         model.add(LSTM(self.DATA_DIM * 2,
                        return_sequences=True,
-                       input_shape=(self.TIMESTEPS, self.DATA_DIM)
+                       input_shape=(self.model_config[TIME_STEPS], self.DATA_DIM)
                        )
                   )
         model.add(LSTM(self.DATA_DIM * 2,
@@ -208,7 +207,7 @@ class LeakTesterModel(CommonModel):
                   )
         model.add(LSTM(self.DATA_DIM * 2)
                   )
-        model.add(Dense(self.NUM_CLASSES,
+        model.add(Dense(self.model_config[OUTPUT_TAGS],
                         activation='softmax'
                         )
                   )
@@ -219,17 +218,7 @@ class LeakTesterModel(CommonModel):
         logging.info('Model compiled successfully')
         logging.info(model.summary(line_length=50))
 
-    def train(self):
-        self.saved = False
-        self.model.fit(self.X, self.Y,
-                  batch_size=self.BATCH_SIZE,
-                  epochs=5,
-                  shuffle=False,
-                  validation_data=(self.X_val, self.Y_val)
-                  )
-        self.trained = True
-
     def gui_model_configure(self, parent, tag_list):
         self.model_config = LeakTesterModelConfigureGUI(parent, title=self.__doc__, taglist=tag_list).model_config
         self.saved = False
-        logging.debug(str(model_config))
+        logging.debug(str(self.model_config))

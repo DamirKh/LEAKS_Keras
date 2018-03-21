@@ -65,17 +65,17 @@ class SourceDataWidget(tk.LabelFrame):
 
     def create_widgets(self):
         self.importDataButton = tk.Button(self)
-        self.importDataButton["text"] = "IMPORT\ndata\n..."
+        self.importDataButton["text"] = "IMPORT data"
         self.importDataButton["command"] = self.DoImportData
         self.importDataButton.pack(side="top", fill='both')
 
         self.SaveDataButton = tk.Button(self)
-        self.SaveDataButton["text"] = "SAVE\nimported data\n..."
+        self.SaveDataButton["text"] = "SAVE imported data"
         self.SaveDataButton["command"] = self.DoSaveData
         self.SaveDataButton.pack(side="top", fill='both')
 
         self.LoaDataButton = tk.Button(self)
-        self.LoaDataButton["text"] = "LOAD\nsaved data\n..."
+        self.LoaDataButton["text"] = "LOAD saved data"
         self.LoaDataButton["command"] = self.DoLoadData
         self.LoaDataButton.pack(side="top", fill='both')
 
@@ -134,7 +134,7 @@ class ModelWidget(tk.LabelFrame):
 
     def create_widgets(self):
         self.importDataButton = tk.Button(self)
-        self.importDataButton["text"] = "Create model\nfrom data"
+        self.importDataButton["text"] = "Configure model"
         self.importDataButton["command"] = self.DoCreateModel
         self.importDataButton.pack(side="top", fill='both')
 
@@ -149,24 +149,17 @@ class ModelWidget(tk.LabelFrame):
         self.SaveDataButton.pack(side="top", fill='both')
 
         self.SaveDataButton = tk.Button(self)
-        self.SaveDataButton["text"] = "Load model\n---"
+        self.SaveDataButton["text"] = "Load model"
         self.SaveDataButton["command"] = self.DoLoadModel
         self.SaveDataButton.pack(side="top", fill='both')
 
     def DoCreateModel(self):
         logging.debug("Let's configure model")
         MODEL.gui_model_configure(self.master, tag_list=DATA.tags_list)
-        logging.debug("Let's create model")
-        MODEL.analyze(DATA,
-                      input_tags=DATA.tags_list[1:-1],
-                      timesteps=100,
-                      num_classes=len(DATA.tags_list[1:-1]),  # грязный хак
-                      validation_tail=100, )
-        MODEL.compile()
 
     def DoTrainModel(self):
         logging.debug("Let's train model")
-        MODEL.train()
+        MODEL.analyze_and_train(DATA)
 
     def DoSaveModel(self):
         logging.debug("Let's save model")
