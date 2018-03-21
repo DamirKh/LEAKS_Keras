@@ -42,6 +42,8 @@ class CommonModel(object):
         except IOError:
             logging.error("Input-output error! File: '%s'" % filepath)
 
+    def model_configure_gui(self, ):
+
 
 class LeakTesterModel(CommonModel):
 
