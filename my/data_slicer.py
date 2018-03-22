@@ -5,9 +5,10 @@ import numpy as np
 
 def slicer(dataSource, tags):
     '''
-    :param dataSource: ScadaDataFile
+    :type dataSource: ScadaDataFile
+    :param dataSource: ScadaDataFile object
     :param tags: list
-    :return: np
+    :return: np.
     '''
     # данные переносятся из исходного массива dataSource.data
     # в новый массив, исключая ненужные теги

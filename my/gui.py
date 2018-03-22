@@ -8,6 +8,7 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 import data_reader
 import model
 from loggerwidget import WidgetLogger
+from parallel_launcher import StartTensorBoardParallel
 
 # Logging configuration
 logging.basicConfig(filename='test.log',
@@ -148,10 +149,10 @@ class ModelWidget(tk.LabelFrame):
         self.SaveDataButton["command"] = self.DoSaveModel
         self.SaveDataButton.pack(side="top", fill='both')
 
-        self.SaveDataButton = tk.Button(self)
-        self.SaveDataButton["text"] = "Load model"
-        self.SaveDataButton["command"] = self.DoLoadModel
-        self.SaveDataButton.pack(side="top", fill='both')
+        self.TensorBoardButton = tk.Button(self)
+        self.TensorBoardButton["text"] = "Launch TensorBoard "
+        self.TensorBoardButton["command"] = self.DoLaunchTensorBoard
+        self.TensorBoardButton.pack(side="top", fill='both')
 
     def DoCreateModel(self):
         logging.debug("Let's configure model")
@@ -184,6 +185,12 @@ class ModelWidget(tk.LabelFrame):
                 logging.error("Failed to load file '%s'" % filename)
                 messagebox.showerror("Save model", "Failed to save file \n'%s'" % filename)
                 return
+
+    def DoLaunchTensorBoard(self):
+        """Launch TensorBoard as parallel process"""
+        logging.info("Let's launch TensorBoard!")
+        self.TensorBoardProccess = StartTensorBoardParallel()
+        self.TensorBoardProccess.run()
 
 
 root = tk.Tk()

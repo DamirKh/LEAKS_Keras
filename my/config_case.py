@@ -1,4 +1,5 @@
-INPUT_TAGS = 1
-OUTPUT_TAGS = 2
-TIME_STEPS = 3
-BATCH_SIZE = 4
+INPUT_TAGS = 'input tags'
+OUTPUT_TAGS = 'output tags'
+TIME_STEPS = 'time steps'
+BATCH_SIZE = 'batch size'
+TENSOR_BOARD_LOGDIR = './logs'

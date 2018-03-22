@@ -11,7 +11,11 @@ import tkSimpleDialog
 from config_case import *
 from data_reader import VerboseFunc
 from data_slicer import slicer
+from tbcallback_mod import TB
 from tkTagSelector import TagSelectorWidget
+
+
+# from keras.callbacks import TensorBoard
 
 
 class CommonModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
@@ -142,7 +146,6 @@ class LeakTesterModel(CommonModel):
         in_data = slicer(dataSource=dataSource, tags=input_tags)
         out_data = slicer(dataSource=dataSource, tags=self.model_config[OUTPUT_TAGS])
 
-
         # normalize all data
         logging.debug('Normalising input data')
         # WARNING! DIVIDE BY ZERO!
@@ -178,11 +181,17 @@ class LeakTesterModel(CommonModel):
 
         self.saved = False
         self.compile()
+        self.tbCallBack = TB(log_dir=TENSOR_BOARD_LOGDIR,
+                             histogram_freq=1,
+                             write_graph=True,
+                             write_images=False,
+                             )
         self.model.fit(X, Y,
                        batch_size=batch_size,
                        epochs=5,  # todo: GUI
                        shuffle=False,
-                       validation_split=0.2  # todo: GUI
+                       validation_split=0.2,  # todo: GUI
+                       callbacks=[self.tbCallBack]
                        )
         self.trained = True
 
