@@ -17,7 +17,7 @@ class StartTensorBoardParallel(threading.Thread):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
 
-        # self.stdout, self.stderr = p.communicate()
+        self.stdout, self.stderr = p.communicate()
 
 # myclass = MyClass()
 # myclass.start()

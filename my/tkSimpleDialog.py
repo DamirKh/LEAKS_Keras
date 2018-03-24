@@ -97,6 +97,41 @@ class Dialog(Toplevel):
 
 
 class ModelConfigDialog(Dialog):
-    def __init__(self, parent, taglist, title=None):
-        self.taglist = taglist
+    def __init__(self, parent, model_config, title=None):
+        self.model_config = model_config
         super().__init__(parent, title=title)
+
+
+class ModelTrainDialog(Dialog):
+    def __init__(self, parent, model_config, flag_var, title=None):
+        self.model_config = model_config
+        self.flag_var = flag_var
+        super().__init__(parent, title=title)
+
+    def buttonbox(self):
+        # Train and exit buttons
+
+        self.status_var = StringVar()
+        self.status_var.set("   Start training   ")
+
+        box = Frame(self)
+
+        w = Checkbutton(box,
+                        textvariable=self.status_var,
+                        variable=self.flag_var,
+                        indicatoron=False,
+                        width=len(self.status_var.get()),
+                        command=self.start_stop)
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Close", width=10, command=self.cancel)
+        w.pack(side=LEFT, padx=5, pady=5)
+
+        box.pack()
+
+    def start_stop(self):
+        self.apply()
+        if self.flag_var.get() == 1:
+            #                   "   Start training   "
+            self.status_var.set(" Train in progress  ")
+        else:
+            self.status_var.set(" Continue training  ")

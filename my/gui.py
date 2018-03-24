@@ -160,7 +160,8 @@ class ModelWidget(tk.LabelFrame):
 
     def DoTrainModel(self):
         logging.debug("Let's train model")
-        MODEL.analyze_and_train(DATA)
+        MODEL.trainGUI(self.master)
+        # MODEL.analyze_and_train(DATA)
 
     def DoSaveModel(self):
         logging.debug("Let's save model")
@@ -190,7 +191,7 @@ class ModelWidget(tk.LabelFrame):
         """Launch TensorBoard as parallel process"""
         logging.info("Let's launch TensorBoard!")
         self.TensorBoardProccess = StartTensorBoardParallel()
-        self.TensorBoardProccess.run()
+        self.TensorBoardProccess.start()
 
 
 root = tk.Tk()

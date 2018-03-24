@@ -17,7 +17,6 @@ from tkTagSelector import TagSelectorWidget
 
 # from keras.callbacks import TensorBoard
 
-
 class CommonModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
     """"Это тестовое окно для испытания диалога конфигуратора модели.
     Не делает ничего"""
@@ -45,30 +44,62 @@ class LeakTesterModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
     """"Диалоговое окно конфигуратора модели LeakTesterModel"""
 
     def body(self, master):
-        self.input_tagselect_widget = TagSelectorWidget(master, text='select input tags', tagslist=self.taglist)
+        self.input_tagselect_widget = TagSelectorWidget(master,
+                                                        text='select input tags',
+                                                        tagslist=self.model_config[ALL_TAGS],
+                                                        selected_tags=self.model_config[INPUT_TAGS]
+                                                        )
         self.input_tagselect_widget.grid(row=0, column=0)
 
-        self.output_tagselect_widget = TagSelectorWidget(master, text='select output tags', tagslist=self.taglist,
-                                                         checked=False)
+        self.output_tagselect_widget = TagSelectorWidget(master,
+                                                         text='select output tags',
+                                                         tagslist=self.model_config[ALL_TAGS],
+                                                         selected_tags=self.model_config[OUTPUT_TAGS]
+                                                         )
         self.output_tagselect_widget.grid(row=0, column=1)
 
         tk.Label(master, text="Time steps:").grid(row=2)
-        tk.Label(master, text="Batch size:").grid(row=3)
 
-        self.e1 = tk.Entry(master)
-        self.e2 = tk.Entry(master)
-
+        self.time_steps_var = tk.IntVar()
+        self.time_steps_var.set(str(self.model_config[TIME_STEPS]))
+        self.e1 = tk.Spinbox(master, from_=1, to=3600, textvariable=self.time_steps_var)
         self.e1.grid(row=2, column=1)
-        self.e2.grid(row=3, column=1)
+
         return self.e1  # initial focus
 
     def apply(self):
-        model_config = self.model_config = {}
+        model_config = self.model_config
         model_config[INPUT_TAGS] = self.input_tagselect_widget.selected_tags
         model_config[OUTPUT_TAGS] = self.output_tagselect_widget.selected_tags
         model_config[TIME_STEPS] = int(self.e1.get())
-        model_config[BATCH_SIZE] = int(self.e2.get())
         logging.info(str(model_config))  # or something
+
+    def validate(self):
+        if int(self.input_tagselect_widget.count.get()) > 1 and \
+                int(self.output_tagselect_widget.count.get()) > 0:
+            return True
+        else:
+            return False
+
+
+class LeakTesterTrainConfigureGUI(tkSimpleDialog.ModelTrainDialog):
+    def body(self, master):
+        tk.Label(master, text="These options do not apply to the model,\nbut affect its learning") \
+            .grid(row=0, columnspan=2, pady=10)
+
+        tk.Label(master, text="Batch size:").grid(row=1)
+
+        self.batch_size = tk.IntVar()
+        self.batch_size.set(str(self.model_config[BATCH_SIZE]))
+        self.bs_spin_wdg = tk.Spinbox(master, from_=1, to=1000, textvariable=self.batch_size)
+        self.bs_spin_wdg.grid(row=1, column=1)
+
+    def apply(self):
+        self.model_config[BATCH_SIZE] = int(self.batch_size.get())
+
+
+
+
 
 
 class CommonModel(object):
@@ -76,6 +107,7 @@ class CommonModel(object):
     def __init__(self):
         self.saved = False
         self.trained = False
+        self.model_config = None
         pass
 
     def train(self, *args, **kwargs):
@@ -109,7 +141,17 @@ class CommonModel(object):
 
 
 class LeakTesterModel(CommonModel):
-    '''Simple LSTM stateless model'''
+    '''Simple LSTM stateless model '''
+
+    def trainGUI(self, parent, ):
+        if self.model_config is None:
+            return
+        self.train_flag = tk.IntVar()
+        LeakTesterTrainConfigureGUI(parent,
+                                    title="Train option",
+                                    flag_var=self.train_flag,
+                                    model_config=self.model_config)
+        pass
 
     def analyze_and_train(self,
                           dataSource,
@@ -186,6 +228,7 @@ class LeakTesterModel(CommonModel):
                              write_graph=True,
                              write_images=False,
                              )
+
         self.model.fit(X, Y,
                        batch_size=batch_size,
                        epochs=5,  # todo: GUI
@@ -222,6 +265,17 @@ class LeakTesterModel(CommonModel):
         logging.info(model.summary(line_length=50))
 
     def gui_model_configure(self, parent, tag_list):
-        self.model_config = LeakTesterModelConfigureGUI(parent, title=self.__doc__, taglist=tag_list).model_config
+        if self.model_config is None:
+            # модель еще не конфигурирована
+            model_config = {}
+            model_config[ALL_TAGS] = tag_list
+            model_config[INPUT_TAGS] = tag_list
+            model_config[OUTPUT_TAGS] = []
+            model_config[TIME_STEPS] = 50
+            model_config[BATCH_SIZE] = 50
+            self.model_config = model_config
+        self.model_config = LeakTesterModelConfigureGUI(parent,
+                                                        title=self.__doc__,
+                                                        model_config=self.model_config).model_config
         self.saved = False
         logging.debug(str(self.model_config))

@@ -5,13 +5,14 @@ from tkinter import *
 
 class TagSelectorWidget(LabelFrame):
     # todo: add selected_tags as parametr
-    def __init__(self, master=None, text='Check tags:', tagslist=['Tag №1', 'Super Tag №2'], checked=True):
+    def __init__(self, master=None, text='Check tags:', tagslist=['Tag №1', 'Super Tag №2'], selected_tags=[]):
         super().__init__(master, text=text)
         self.tagslist = tagslist
-        self.selected_tags = []
-        self.create_widgets(checked)
+        self.count = IntVar()
+        self.selected_tags = selected_tags
+        self.create_widgets()
 
-    def create_widgets(self, checked):
+    def create_widgets(self):
         self.vars = []
         for tag in self.tagslist:
             self.vars.append(StringVar())
@@ -23,16 +24,20 @@ class TagSelectorWidget(LabelFrame):
                 command=self.cb
             )
             c.pack(anchor='w', padx=5, pady=0)
-            if checked:
+            if tag in self.selected_tags:
                 c.select()
             else:
                 c.deselect()
-            self.cb()
+        self.counter = Label(self, textvariable=self.count)
+        self.counter.pack(anchor='e', padx=5, pady=5)
+        self.count.set(len(self.selected_tags))
 
 
     def cb(self):
-        self.selected_tags = []
+        selected_tags = []
         for x in self.vars:
             if x.get() == '-':
                 continue
-            self.selected_tags.append(x.get())
+            selected_tags.append(x.get())
+        self.selected_tags = selected_tags
+        self.count.set(len(self.selected_tags))
