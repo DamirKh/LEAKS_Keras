@@ -103,12 +103,13 @@ class ModelConfigDialog(Dialog):
 
 
 class ModelTrainDialog(Dialog):
-    def __init__(self, parent, model_config, flag_var, title=None):
-        self.model_config = model_config
-        self.flag_var = flag_var
+    def __init__(self, parent, model, datasource, title='Train dialog'):
+        self.model_config = model.model_config
+        self.model = model
+        self.datasource = datasource
         super().__init__(parent, title=title)
 
-    def buttonbox(self):
+    def rem_buttonbox(self):
         # Train and exit buttons
 
         self.status_var = StringVar()
@@ -128,7 +129,7 @@ class ModelTrainDialog(Dialog):
 
         box.pack()
 
-    def start_stop(self):
+    def rem_start_stop(self):
         self.apply()
         if self.flag_var.get() == 1:
             #                   "   Start training   "

@@ -94,12 +94,28 @@ class LeakTesterTrainConfigureGUI(tkSimpleDialog.ModelTrainDialog):
         self.bs_spin_wdg = tk.Spinbox(master, from_=1, to=1000, textvariable=self.batch_size)
         self.bs_spin_wdg.grid(row=1, column=1)
 
+        tk.Label(master, text="Epochs:").grid(row=2)
+
+        self.epo_num = tk.IntVar()
+        self.epo_num.set(str(1))
+        self.epo_spin_wdg = tk.Spinbox(master, from_=1, to=100, textvariable=self.epo_num)
+        self.epo_spin_wdg.grid(row=2, column=1)
+
+        tk.Label(master, text="Validation:").grid(row=3)
+
+        self.validation_split = tk.Scale(master, from_=0, to=1,
+                                         resolution=0.05,
+                                         orient=tk.HORIZONTAL,
+                                         )
+        self.validation_split.grid(row=3, column=1)
+
+
     def apply(self):
         self.model_config[BATCH_SIZE] = int(self.batch_size.get())
+        self.model_config[EPOCH] = int(self.epo_num.get())
+        self.model_config[VALIDATION_PART] = self.validation_split.get()
 
-
-
-
+        self.model.analyze_and_train(self.datasource)
 
 
 class CommonModel(object):
@@ -143,15 +159,6 @@ class CommonModel(object):
 class LeakTesterModel(CommonModel):
     '''Simple LSTM stateless model '''
 
-    def trainGUI(self, parent, ):
-        if self.model_config is None:
-            return
-        self.train_flag = tk.IntVar()
-        LeakTesterTrainConfigureGUI(parent,
-                                    title="Train option",
-                                    flag_var=self.train_flag,
-                                    model_config=self.model_config)
-        pass
 
     def analyze_and_train(self,
                           dataSource,
@@ -230,10 +237,10 @@ class LeakTesterModel(CommonModel):
                              )
 
         self.model.fit(X, Y,
-                       batch_size=batch_size,
-                       epochs=5,  # todo: GUI
+                       batch_size=self.model_config[BATCH_SIZE],
+                       epochs=self.model_config[EPOCH],  #
                        shuffle=False,
-                       validation_split=0.2,  # todo: GUI
+                       validation_split=self.model_config[VALIDATION_PART],
                        callbacks=[self.tbCallBack]
                        )
         self.trained = True

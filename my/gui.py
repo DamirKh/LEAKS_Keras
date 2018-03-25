@@ -160,7 +160,7 @@ class ModelWidget(tk.LabelFrame):
 
     def DoTrainModel(self):
         logging.debug("Let's train model")
-        MODEL.trainGUI(self.master)
+        model.LeakTesterTrainConfigureGUI(self.master, model=MODEL, datasource=DATA)
         # MODEL.analyze_and_train(DATA)
 
     def DoSaveModel(self):
