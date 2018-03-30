@@ -12,6 +12,7 @@ from config_case import *
 from data_reader import VerboseFunc
 from data_slicer import slicer
 from tbcallback_mod import TB
+from tkModelConfig import ModelConfigurator
 from tkTagSelector import TagSelectorWidget
 
 
@@ -51,12 +52,16 @@ class LeakTesterModelConfigureGUI(tkSimpleDialog.ModelConfigDialog):
                                                         )
         self.input_tagselect_widget.grid(row=0, column=0)
 
+        self.model_configurator_widget = ModelConfigurator(master,
+                                                           self.model_config)
+        self.model_configurator_widget.grid(row=0, column=1)
+
         self.output_tagselect_widget = TagSelectorWidget(master,
                                                          text='select output tags',
                                                          tagslist=self.model_config[ALL_TAGS],
                                                          selected_tags=self.model_config[OUTPUT_TAGS]
                                                          )
-        self.output_tagselect_widget.grid(row=0, column=1)
+        self.output_tagselect_widget.grid(row=0, column=2)
 
         tk.Label(master, text="Time steps:").grid(row=2)
 
@@ -261,11 +266,13 @@ class LeakTesterModel(CommonModel):
         model.add(LSTM(self.DATA_DIM * 2)
                   )
         model.add(Dense(len(self.model_config[OUTPUT_TAGS]),
-                        activation='softmax'
+                        activation=self.model_config[ACTIVATION_LAST_LAYER],
+                        # activation='softmax',
+                        use_bias=True,
                         )
                   )
-        model.compile(loss='mean_absolute_percentage_error',
-                      optimizer='adagrad',
+        model.compile(loss=self.model_config[LOSS_COMPILE],
+                      optimizer=self.model_config[OPTIMASER_COMPILE],
                       metrics=['accuracy']
                       )
         logging.info('Model compiled successfully')
