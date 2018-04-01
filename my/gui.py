@@ -19,10 +19,11 @@ logging.basicConfig(filename='test.log',
 
 SCADA_EXPORT_FILENAMES = (("SCADA txt data files", "*.txt"),)
 DATAFILE_NAMES = (("LEAK Tester meta file", "*.meta"),)
-MODELFILE_NAMES = (("LEAK Tester model file", "*.h5"),)
+MODELFILE_NAMES = (("LEAK Tester model file", "*.h5m"),)
 
 DATA = data_reader.ScadaDataFile()
-MODEL = model.LeakTesterModel()
+MODEL = None
+
 
 
 class Application(tk.Frame):
@@ -38,9 +39,12 @@ class Application(tk.Frame):
         self.modelWidget = ModelWidget(self)
         self.modelWidget.grid(row=0, column=1, sticky='n', padx=5, pady=10)
 
+        self.predictWidget = PredictionWidget(self)
+        self.predictWidget.grid(row=0, column=2, sticky='n', padx=5, pady=10)
+
         self.quit = tk.Button(self, text="QUIT", fg="red",
                               command=root.destroy)
-        self.quit.grid(row=0, column=2, sticky='ne', padx=5, pady=10, )
+        self.quit.grid(row=2, column=2, sticky='ne', padx=5, pady=10, )
 
         # Add text widget to display logging info
         self.st = ScrolledText.ScrolledText(self, state='disabled', height=10)
@@ -139,15 +143,20 @@ class ModelWidget(tk.LabelFrame):
         self.importDataButton["command"] = self.DoCreateModel
         self.importDataButton.pack(side="top", fill='both')
 
-        self.SaveDataButton = tk.Button(self)
-        self.SaveDataButton["text"] = "Train model\nwith loaded data"
-        self.SaveDataButton["command"] = self.DoTrainModel
-        self.SaveDataButton.pack(side="top", fill='both')
+        self.TrainButton = tk.Button(self)
+        self.TrainButton["text"] = "Train model\nwith loaded data"
+        self.TrainButton["command"] = self.DoTrainModel
+        self.TrainButton.pack(side="top", fill='both')
 
         self.SaveDataButton = tk.Button(self)
         self.SaveDataButton["text"] = "Save model\nfor future use"
         self.SaveDataButton["command"] = self.DoSaveModel
         self.SaveDataButton.pack(side="top", fill='both')
+
+        self.LoadDataButton = tk.Button(self)
+        self.LoadDataButton["text"] = "Load model"
+        self.LoadDataButton["command"] = self.DoLoadModel
+        self.LoadDataButton.pack(side="top", fill='both')
 
         self.TensorBoardButton = tk.Button(self)
         self.TensorBoardButton["text"] = "Launch TensorBoard "
@@ -156,35 +165,44 @@ class ModelWidget(tk.LabelFrame):
 
     def DoCreateModel(self):
         logging.debug("Let's configure model")
+        global MODEL
+        if MODEL is None:
+            MODEL = model.LeakTesterModel(DATA)
         MODEL.gui_model_configure(self.master, tag_list=DATA.tags_list)
 
     def DoTrainModel(self):
         logging.debug("Let's train model")
+        global MODEL
         model.LeakTesterTrainConfigureGUI(self.master, model=MODEL, datasource=DATA)
         # MODEL.analyze_and_train(DATA)
 
     def DoSaveModel(self):
         logging.debug("Let's save model")
+        global MODEL
         filename = asksaveasfilename(title='Save model to file',
                                      filetypes=MODELFILE_NAMES)
         if filename:
+            f = os.path.splitext(filename)[0]
             try:
-                MODEL.savemodel(filename)
+                MODEL.savemodel(f)
             except FileExistsError or IOError:
-                logging.error("Failed to save file '%s'" % filename)
-                messagebox.showerror("Save model", "Failed to save file \n'%s'" % filename)
+                logging.error("Failed to save file '%s'" % f)
+                messagebox.showerror("Save model", "Failed to save file \n'%s'" % f)
                 return
 
     def DoLoadModel(self):
         logging.debug("Let's load model")
+        global MODEL
         filename = askopenfilename(title='Load model from file',
                                    filetypes=MODELFILE_NAMES)
         if filename:
+            f = os.path.splitext(filename)[0]
             try:
-                MODEL.loadmodel(filename)
+                MODEL = model.LeakTesterModel(DATA)
+                MODEL.loadmodel(f)
             except FileExistsError or IOError:
-                logging.error("Failed to load file '%s'" % filename)
-                messagebox.showerror("Save model", "Failed to save file \n'%s'" % filename)
+                logging.error("Failed to load file '%s'" % f)
+                messagebox.showerror("Save model", "Failed to save file \n'%s'" % f)
                 return
 
     def DoLaunchTensorBoard(self):
@@ -194,7 +212,36 @@ class ModelWidget(tk.LabelFrame):
         self.TensorBoardProccess.start()
 
 
+class PredictionWidget(tk.LabelFrame):
+    def __init__(self, master=None):
+        super().__init__(master, text='Predict')
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.predictButton = tk.Button(self)
+        self.predictButton["text"] = "Predict (textual)"
+        self.predictButton["command"] = self.DoPredictTextual
+        self.predictButton.pack(side="top", fill='both')
+
+        self.predictnpButton = tk.Button(self)
+        self.predictnpButton["text"] = "Predict and plot"
+        self.predictnpButton["command"] = self.DoPredictNP
+        self.predictnpButton.pack(side="top", fill='both')
+
+    def DoPredictTextual(self):
+        logging.debug("Let's use magic to predict leakage...")
+        global MODEL
+        MODEL.predict()
+
+    def DoPredictNP(self):
+        logging.debug("Let's use magic to predict leakage...")
+        global MODEL
+        MODEL.predict_np()
+
+
+
 root = tk.Tk()
 root.title("Leak tester")
 app = Application(master=root)
+logging.info("============================================================   Program started!")
 app.mainloop()

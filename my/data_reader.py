@@ -104,7 +104,7 @@ class ScadaDataFile(object):
             self.time_delta = self.time_stop - self.time_start
             VerboseFunc("Seconds: ", self.time_delta.total_seconds())
 
-        data_width = len(self.tags)
+        data_width = len(self.tags) + 1
         data_lenth = int(self.time_delta.total_seconds()) + 1
         mesivo = np.zeros((data_lenth, data_width), dtype=np.float64)
         filled_data = np.zeros((data_lenth, data_width), dtype=np.bool)
