@@ -9,6 +9,7 @@ from keras.layers import Dense
 from keras.layers.recurrent import LSTM
 from keras.models import Sequential
 from keras.models import load_model
+from keras.optimizers import SGD
 
 import tkSimpleDialog
 from config_case import *
@@ -135,6 +136,9 @@ class CommonModel(object):
         self.saved = False
         self.trained = False
         self.model_config = None
+        self.analyze_complete = False
+        self.prediction_opportunity = False
+        self.training_opportunity = False
         self.dataSource = dataSource
         pass
 
@@ -181,7 +185,8 @@ class CommonModel(object):
                 logging.info("Model configuration file '%s' loaded" % f.name)
             except AttributeError:
                 logging.error("Model configuration file '%s' loaded ERROR!" % f.name)
-        self.analyze()
+        # self.analyze()
+        pass
 
 
 class LeakTesterModel(CommonModel):
@@ -200,6 +205,26 @@ class LeakTesterModel(CommonModel):
         logging.info("Analyze input data...")
 
         input_tags = self.model_config[INPUT_TAGS]
+        output_tags = self.model_config[OUTPUT_TAGS]
+
+        try:
+            if set(input_tags).issubset(self.dataSource.tags):
+                # список входных тегов модели - подмножество списка тега загруженных данных
+                # предсказание возможно
+                logging.info('Input tags list is a subset of data source tags list: Prediction opportunity.')
+                self.prediction_opportunity = True
+            if set(output_tags).issubset(self.dataSource.tags):
+                # список выходных тегов модели - подмножество списка тега загруженных данных
+                logging.info('Output tags list is a subset of data source tags list: Training opportunity.')
+                self.training_opportunity = True
+        except AttributeError:
+            logging.error('ERROR: Data Source is not loaded! Load it first!')
+            return False
+
+        if not self.prediction_opportunity:
+            logging.error("Check data source!")
+            return False
+
         logging.info("Used tag list for model:")
         [logging.info(tag) for tag in input_tags]
 
@@ -213,9 +238,9 @@ class LeakTesterModel(CommonModel):
         logging.info("Timesteps = %i" % timesteps)
 
         # кол-во выходных тегов (общий случай: один тег LEAKAGE)
-        num_classes = len(self.model_config[OUTPUT_TAGS])
+        num_classes = len(output_tags)
         logging.debug("Output classes:")
-        [logging.debug(tag) for tag in self.model_config[OUTPUT_TAGS]]
+        [logging.debug(tag) for tag in output_tags]
 
         # всю эту хрень нужно заменить объектом https://keras.io/preprocessing/sequence/#timeseriesgenerator
         # normalize and constructing working array
@@ -226,7 +251,7 @@ class LeakTesterModel(CommonModel):
         # форма массива, должна соответствовать исходному массиву.
         # нулевая колонка - не содержит данных. она для создания массива нужной формы
         in_data = slicer(dataSource=self.dataSource, tags=input_tags)
-        out_data = slicer(dataSource=self.dataSource, tags=self.model_config[OUTPUT_TAGS])
+        out_data = slicer(dataSource=self.dataSource, tags=output_tags)
 
         # normalize all data
         # нормализация примитавная, нужно переделать
@@ -236,7 +261,7 @@ class LeakTesterModel(CommonModel):
         # logging.debug('Normalising input data')
         # WARNING! DIVIDE BY ZERO!
         # in_data = 1 / in_data
-        # out_data = 1 / out_data
+        #out_data = 1 / out_data
 
         # кол-во фреймов во входных данных
         num_of_frames = in_data.shape[0] - timesteps - 1
@@ -257,8 +282,13 @@ class LeakTesterModel(CommonModel):
             self.Y[frame_] = out_data[frame_ + timesteps]
 
         logging.info('Input data prepared successfully')
+        self.analyze_complete = True
+        return True
 
     def train(self):
+        if not self.training_opportunity:
+            logging.info("Can't fit model with loaded data set!")
+            return False
         self.saved = False
         # self.compile()
         # следует добавить еще коллбэков:
@@ -273,40 +303,54 @@ class LeakTesterModel(CommonModel):
         self.model.fit(self.X, self.Y,
                        batch_size=self.model_config[BATCH_SIZE],
                        epochs=self.model_config[EPOCH],  #
-                       shuffle=False,
+                       # shuffle=False,
                        validation_split=self.model_config[VALIDATION_PART],
                        callbacks=[self.tbCallBack]
                        )
         self.trained = True
+        return True
 
     def compile(self):
         # expected input data shape for this model: (batch_size, timesteps, data_dim)
         # https://keras.io/getting-started/sequential-model-guide/#getting-started-with-the-keras-sequential-model
         # данный метод не нужно вызывать при восстановлении модели из файла методом .loadmodel()
+        if not self.analyze_complete:
+            logging.warning("Data was not analyzed!")
+            return False
+        if self.model_config is None:
+            logging.warning("Model was not configured!")
+            return False
         self.model = Sequential()
+        sgd = SGD(lr=0.01, momentum=0.9, nesterov=True)
         model = self.model
-        model.add(LSTM(self.DATA_DIM * 2,
-                       activation='tanh',
+        model.add(LSTM(self.DATA_DIM * 10,
+                       activation='relu',
                        return_sequences=True,
+                       kernel_initializer="he_normal",
                        input_shape=(self.model_config[TIME_STEPS], self.DATA_DIM)
                        )
                   )
-        model.add(LSTM(self.DATA_DIM * 2,
-                       activation='tanh',
-                       return_sequences=True)
+        model.add(LSTM(self.DATA_DIM * 10,
+                       activation='relu',
+                       return_sequences=True,
+                       kernel_initializer="he_normal",)
                   )
-        model.add(LSTM(self.DATA_DIM * 2,
-                       activation='tanh',)
+        model.add(LSTM(self.DATA_DIM * 10,
+                       activation='relu',
+                       kernel_initializer="he_normal",)
                   )
         model.add(Dense(len(self.model_config[OUTPUT_TAGS]),
                         activation=self.model_config[ACTIVATION_LAST_LAYER],
                         # activation='softmax',
                         use_bias=True,
+                        kernel_initializer="he_normal",
                         )
                   )
         model.compile(loss=self.model_config[LOSS_COMPILE],
                       optimizer=self.model_config[OPTIMASER_COMPILE],
-                      metrics=['accuracy']
+                      # optimizer=sgd,
+                      metrics=['mse'],
+                      # metrics=['accuracy']
                       )
         logging.info('Model compiled successfully')
         logging.info(model.summary(line_length=50))
@@ -349,9 +393,9 @@ class LeakTesterModel(CommonModel):
         if result:
             logging.debug("Model configured!")
             global DATA
-            self.analyze()
-            self.compile()
-            self.saved = False
+            if self.analyze_complete:
+                self.compile()
+                self.saved = False
         else:
             logging.debug("Model configuring canceled.")
             self.model_config = temporary_config

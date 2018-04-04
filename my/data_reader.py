@@ -9,7 +9,10 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-StampWorld = 'Timestamp', 'DATA QUALITY'
+from config_case import NORMALISE_DICT
+
+# StampWorld = 'Timestamp', 'DATA QUALITY'
+StampWorld = ('Timestamp',)
 Lang = ['ru', 'en']
 
 mon_ru = {'янв': 1,
@@ -81,7 +84,7 @@ class ScadaDataFile(object):
                 # VerboseFunc(row)
                 if len(row) < 3:
                     continue  # empty string
-                if (row[0], row[2]) == StampWorld:
+                if (row[0],) == StampWorld:
                     # tagname found analog.P0034SB_PT0004_PV.curval
                     tag_name = parse_tag(row[1])
                     self.tags.add(tag_name)
@@ -108,7 +111,7 @@ class ScadaDataFile(object):
         data_lenth = int(self.time_delta.total_seconds()) + 1
         mesivo = np.zeros((data_lenth, data_width), dtype=np.float64)
         filled_data = np.zeros((data_lenth, data_width), dtype=np.bool)
-        VerboseFunc("Data Size:", mesivo.size)
+        # VerboseFunc("Data Size:", mesivo.size)
         tags_list = list(self.tags)
         tags_list.sort()
         # reset csv reader
@@ -116,8 +119,10 @@ class ScadaDataFile(object):
         current_tag = None
 
         for row in csv_data_iterator:
-            if len(row) < 3: continue  # incomplete or empty string
-            if (row[0], row[2]) == StampWorld:
+            if len(row) < 1: continue  # incomplete or empty string
+            if row[0][0] == '#': continue  # comment string
+
+            if (row[0],) == StampWorld:
                 # tagname found
                 current_tag = row[1]  # tag name as string
                 assert isinstance(current_tag, type(''))
@@ -210,8 +215,52 @@ class ScadaDataFile(object):
             if reduced:
                 plt.plot(x_axe, self.reduced_data[..., i])
             else:
-                plt.plot(x_axe, self.data[..., i])
+                plt.plot(x_axe, self.data[..., i], label=tag_names[par])
+        plt.legend()
         plt.show()
+
+    def normaliser(self, normalise_dict=NORMALISE_DICT):
+        # https://stackoverflow.com/questions/10149416/numpy-modify-array-in-place
+        for tag in self.tags_list:
+            try:
+                sensor_type = tag.split('_', maxsplit=2)[1][0:2].upper()
+            except IndexError:
+                sensor_type = '**'
+            logging.debug("Tag %s with sensor type %s" % (tag, sensor_type))
+            try:
+                sensor_range = normalise_dict[sensor_type]
+            except:
+                # DONE: replace it wis auto range
+                sensor_range = normalise_dict['other']
+                sensor_range.min = self.data[..., self.tags_list.index(tag)].min()
+                sensor_range.max = self.data[..., self.tags_list.index(tag)].max()
+
+            # нормализованные данные вдоль временнОй оси
+            # y = (x - min) / (max - min)
+            self.data[..., self.tags_list.index(tag)] = (self.data[
+                                                             ..., self.tags_list.index(tag)] - sensor_range.min) / (
+                                                                    sensor_range.max - sensor_range.min)
+
+    def load_test_data(self):
+        # https://habrahabr.ru/post/322438/
+        from test_data_generator import line_func, sin_func, comp_func
+        lenth = sin_func.shape[0]
+        mesivo = np.zeros((lenth, 3), dtype=np.float64)
+        mesivo[..., 0] = line_func[..., 0]
+        mesivo[..., 1] = sin_func[..., 0]
+        mesivo[..., 2] = comp_func[..., 0]
+        self.data = mesivo
+
+        self.time_start = datetime.datetime(1961, 4, 12)
+        self.time_delta = datetime.timedelta(seconds=lenth - 1)
+        self.time_stop = self.time_start + self.time_delta
+
+        self.tags = set()
+        self.tags.add('LINE')
+        self.tags.add('SIN')
+        self.tags.add('COMP')
+        self.tags_list = list(self.tags)
+        self.tags_list.sort()
 
 
 if __name__ == '__main__':

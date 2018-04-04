@@ -89,6 +89,16 @@ class SourceDataWidget(tk.LabelFrame):
         self.ShowDataButton["command"] = self.DoShowData
         self.ShowDataButton.pack(side="top", fill='both')
 
+        self.ShowDataButton = tk.Button(self)
+        self.ShowDataButton["text"] = "Normalise data"
+        self.ShowDataButton["command"] = self.DoNormaliseData
+        self.ShowDataButton.pack(side="top", fill='both')
+
+        self.ShowDataButton = tk.Button(self)
+        self.ShowDataButton["text"] = "Generate test data"
+        self.ShowDataButton["command"] = self.DoGenerateTestData
+        self.ShowDataButton.pack(side="top", fill='both')
+
     def DoSaveData(self):
         logging.debug("Lets save data!")
         filename = asksaveasfilename(title='Save data to file',
@@ -131,6 +141,14 @@ class SourceDataWidget(tk.LabelFrame):
         logging.debug("Lets load data!")
         self.data.show_me_data()
 
+    def DoNormaliseData(self):
+        logging.debug("Lets normalise data!")
+        self.data.normaliser()
+
+    def DoGenerateTestData(self):
+        logging.debug("Lets generate test data!")
+        self.data.load_test_data()
+
 
 class ModelWidget(tk.LabelFrame):
     def __init__(self, master=None):
@@ -138,6 +156,11 @@ class ModelWidget(tk.LabelFrame):
         self.create_widgets()
 
     def create_widgets(self):
+        self.importDataButton = tk.Button(self)
+        self.importDataButton["text"] = "Сompatibility analysis"
+        self.importDataButton["command"] = self.DoCompAnalys
+        self.importDataButton.pack(side="top", fill='both')
+
         self.importDataButton = tk.Button(self)
         self.importDataButton["text"] = "Configure model"
         self.importDataButton["command"] = self.DoCreateModel
@@ -163,6 +186,17 @@ class ModelWidget(tk.LabelFrame):
         self.TensorBoardButton["command"] = self.DoLaunchTensorBoard
         self.TensorBoardButton.pack(side="top", fill='both')
 
+    def DoCompAnalys(self):
+        logging.debug("Let's make compatibility analysis...")
+        global MODEL
+        if MODEL is not None:
+            success = MODEL.analyze()
+            if success:
+                messagebox.showinfo("INFO", "Compatibility analysis successful")
+        else:
+            messagebox.showerror("No Model", "No model yet!")
+
+
     def DoCreateModel(self):
         logging.debug("Let's configure model")
         global MODEL
@@ -173,8 +207,10 @@ class ModelWidget(tk.LabelFrame):
     def DoTrainModel(self):
         logging.debug("Let's train model")
         global MODEL
-        model.LeakTesterTrainConfigureGUI(self.master, model=MODEL, datasource=DATA)
-        # MODEL.analyze_and_train(DATA)
+        if not MODEL.training_opportunity:
+            messagebox.showerror("Error!", "Can't fit model with loaded data set!")
+        else:
+            model.LeakTesterTrainConfigureGUI(self.master, model=MODEL, datasource=DATA)
 
     def DoSaveModel(self):
         logging.debug("Let's save model")
@@ -231,12 +267,20 @@ class PredictionWidget(tk.LabelFrame):
     def DoPredictTextual(self):
         logging.debug("Let's use magic to predict leakage...")
         global MODEL
-        MODEL.predict()
+        if not MODEL.prediction_opportunity:
+            logging("Can't predict on loaded data set!")
+            messagebox.showerror("Error!", "Can't predict on loaded data set!")
+        else:
+            MODEL.predict()
 
     def DoPredictNP(self):
         logging.debug("Let's use magic to predict leakage...")
         global MODEL
-        MODEL.predict_np()
+        if not MODEL.prediction_opportunity:
+            logging("Can't predict on loaded data set!")
+            messagebox.showerror("Error!", "Can't predict on loaded data set!")
+        else:
+            MODEL.predict_np()
 
 
 
