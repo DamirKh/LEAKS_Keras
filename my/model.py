@@ -367,10 +367,18 @@ class LeakTesterModel(CommonModel):
         self.predict_np = np.zeros((self.X.shape[0],))
         for i in range(self.X.shape[0]):
             self.predict_np[i] = predictions[i][0]
+
         x_axe = np.linspace(0, i, i + 1)
-        fig, (ax0, ax1, ax3) = plt.subplots(nrows=3)
-        ax0.plot(x_axe, self.predict_np)
-        ax0.set_title('Prediction')
+        plt.plot(x_axe, self.predict_np, label='PREDICT')
+
+        tag_names = self.model_config[OUTPUT_TAGS]
+
+        for par in range(len(tag_names)):
+            i = self.dataSource.tags_list.index(tag_names[par])
+            y_to = x_axe.shape[0]
+            plt.plot(x_axe, self.dataSource.data[0:y_to, i], label=tag_names[par])
+        plt.legend()
+
         # Tweak spacing between subplots to prevent labels from overlapping
         plt.subplots_adjust(hspace=0.5)
         plt.show()
