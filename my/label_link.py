@@ -5,10 +5,12 @@ from tkinter import *
 class LabelLink(Frame):
     """Label packed in Frame for http links"""
 
-    def __init__(self, master, www):
+    def __init__(self, master, www=r'https://www.google.com', wwwidth=50):
         """www: r'http://google.com'"""
         super().__init__(master)
-        self.www = www
+        # self.www = shorten(www, wwwidth, placeholder="..")
+        self.www = www[:wwwidth] + (www[wwwidth:] and '..')
+        self._www = www
         self.create_widgets()
 
     def create_widgets(self):
@@ -18,7 +20,7 @@ class LabelLink(Frame):
         pass
 
     def cb(self, event):
-        webbrowser.open_new(event.widget.cget("text"))
+        webbrowser.open_new(self._www)
 
 
 if __name__ == '__main__':

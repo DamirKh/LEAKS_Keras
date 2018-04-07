@@ -103,6 +103,17 @@ class IntRangeProp(CommonProp):
             self.configured = True
             self.__value = value
 
+    @property
+    def min(self):
+        """Range minimum"""
+        return self.__min
+
+    @property
+    def max(self):
+        """Range maximum"""
+        return self.__max
+
+
     def __call__(self, value=None):
         if value is not None:
             # set new value
@@ -115,6 +126,7 @@ class IntRangeProp(CommonProp):
         elif not self.configured:
             # getting choice but choice is not configured yet
             raise NotDefinedError
+        print(self.__doc__, '=', self.__value)
         return self.__value
 
 
@@ -165,6 +177,10 @@ avail_act = ['softmax Softmax activation function',
 
 LayerActivationAny = SelectOneProp(avail_act, description='Layer activation function',
                                    www=r'https://keras.io/activations/')
+
+NumOfUnitsAny = IntRangeProp((1, 1000), "Dimensionality of\nthe output space",
+                             www=r'https://keras.io/getting-started/sequential-model-guide/#getting-started-with-the-keras-sequential-model',
+                             value=3)
 
 # LayersType ={
 #     'LSTM': dict(
