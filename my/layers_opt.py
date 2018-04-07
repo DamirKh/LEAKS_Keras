@@ -20,8 +20,9 @@ class CommonProp(object):
 
 
 class BoolProp(CommonProp):
-    def __init__(self, description='Some boolean object', www=r'https://www.google.com/', state=None):
-        self.www = www
+    def __init__(self, description='Some boolean object', www=None, state=None, help=None):
+        self.help = description if (help is None) else help
+        self.www = 'https://www.google.com/search?q=%s' % help if (www is None) else www
         self.__doc__ = description
         if state is None:
             self.configured = False
@@ -177,6 +178,9 @@ avail_act = ['softmax Softmax activation function',
 
 LayerActivationAny = SelectOneProp(avail_act, description='Layer activation function',
                                    www=r'https://keras.io/activations/')
+
+RecurrentActivationAny = SelectOneProp(avail_act, description='Activation function to use\nfor the recurrent step ',
+                                       www=r'https://keras.io/activations/')
 
 NumOfUnitsAny = IntRangeProp((1, 1000), "Dimensionality of\nthe output space",
                              www=r'https://keras.io/getting-started/sequential-model-guide/#getting-started-with-the-keras-sequential-model',

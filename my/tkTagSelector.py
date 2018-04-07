@@ -4,7 +4,7 @@ from tkinter import *
 # http://effbot.org/tkinterbook/checkbutton.htm
 
 class TagSelectorWidget(LabelFrame):
-    # todo: add selected_tags as parametr
+    # done: add selected_tags as parametr
     def __init__(self, master=None, text='Check tags:', tagslist=['Tag №1', 'Super Tag №2'], selected_tags=[]):
         super().__init__(master, text=text)
         self.tagslist = tagslist
