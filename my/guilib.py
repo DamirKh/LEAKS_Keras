@@ -1,8 +1,14 @@
+# core import
+from collections import OrderedDict
+# lib imports
 from tkinter import *
 
+# my modules imports
 import layers_opt
-# my modules next
 from label_link import LabelLink
+from layers_opt import BoolProp, SelectOneProp, IntRangeProp
+from layers_opt import layer_activation_any, num_of_units_any, avail_act, avail_initializer
+from tkSimpleDialog import Dialog
 
 COLUMN0_W = 200
 
@@ -115,7 +121,7 @@ class BoolConfigWidget(Frame):
         self.bc(self.var.get())
 
 
-class LayerConfigWidget(Frame):
+class LSTMLayerConfigWidget(Frame):
     def __init__(self, master=None, layer_conf=None):
         super().__init__(master)
         self.layer_conf = layer_conf
@@ -123,7 +129,7 @@ class LayerConfigWidget(Frame):
 
     def create_widgets(self):
         lc = self.layer_conf  # Layer Config
-        Label(self, text=lc['name']).pack()
+        Label(self, text=lc['name'], font=("Helvetica", 20)).pack(pady=10)
         LabelLink(self, www=lc['www']).pack()
 
         units_config = NumOfUnitsConfigWidget(self, layers_opt.NumOfUnitsAny)
@@ -139,16 +145,68 @@ class LayerConfigWidget(Frame):
         use_bias_config.pack(pady=5)
 
 
+class LayerConfigDialog(Dialog):
+    def __init__(self, master=None, layer_conf=None):
+        self.layer_conf = layer_conf
+        # self.create_widgets()
+        super().__init__(master, title="Layer Configuration")
+
+    def body(self, master):
+        lc = self.layer_conf  # Layer Config
+        Label(self, text=lc['name'], font=("Helvetica", 20)).pack(pady=10)
+        LabelLink(self, www=lc['www']).pack()
+
+        for c in lc['layer_conf']:
+            conf = lc['layer_conf'][c]
+            if isinstance(conf, BoolProp):
+                BoolConfigWidget(self, conf).pack()
+            if isinstance(conf, SelectOneProp):
+                ActivationConfigWidget(self, conf).pack()
+            if isinstance(conf, IntRangeProp):
+                NumOfUnitsConfigWidget(self, conf).pack()
+
 
 if __name__ == '__main__':
+    # layer dialog configuration example
+    lstm_config_ex = dict(name='Long Short-Term Memory layer',
+                          www=r'https://keras.io/layers/recurrent/#lstm',
+                          layer_conf=OrderedDict([
+                              ('units', num_of_units_any()),
+                              ('activation', layer_activation_any()),
+                              ('recurrent_activation', SelectOneProp(avail_act,
+                                                                     description='Activation function to use\nfor the recurrent step ',
+                                                                     www=r'https://keras.io/activations/')),
+                              ('use_bias',
+                               BoolProp(description='Use bias', help_='Boolean, whether the layer uses a bias vector')),
+                              ('kernel_initializer', SelectOneProp(avail_initializer,
+                                                                   description='Initializer for the kernel weights matrix,\nused for the linear transformation of the inputs',
+                                                                   www=r'https://keras.io/initializers/')),
+                              ('recurrent_initializer', SelectOneProp(avail_initializer,
+                                                                      description='Initializer for the recurrent_kernel weights matrix,\nused for the linear transformation of the recurrent state',
+                                                                      www=r'https://keras.io/initializers/')),
+                              ('bias_initializer', SelectOneProp(avail_initializer,
+                                                                 description='Initializer for the bias vector',
+                                                                 www=r'https://keras.io/initializers/')),
+                              ('unit_forget_bias', BoolProp(description='Forget gate',
+                                                            help_='If True, add 1 to the bias of the forget gate at initialization',
+                                                            www='http://www.jmlr.org/proceedings/papers/v37/jozefowicz15.pdf')),
+
+                              ('return_sequences', BoolProp(description='Return sequences',
+                                                            help_='Whether to return the last output in the output sequence, or the full sequence')),
+                              ('return_state', BoolProp(description='Return state',
+                                                        help_='Whether to return the last state in addition to the output')),
+                              ('stateful', BoolProp(description='Stateful',
+                                                    help_='If True, the last state for each sample at index i in a batch will be used as initial state for the sample of index i in the following batch')),
+                          ])
+                          )
+
     import os
 
     root = Tk()
     root.title(os.name)
 
-    w = LayerConfigWidget(root,
-                          {'name': 'Long Short-Term Memory layer', 'www': r'https://keras.io/layers/recurrent/#lstm'})
-    w.pack()
+    w = LayerConfigDialog(root, lstm_config_ex)
+    #w.pack()
 
     # l = ActivationConfigWidget(root, layers_opt.LayerActivationAny)
     # l.pack(fill=BOTH)

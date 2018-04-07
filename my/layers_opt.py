@@ -20,9 +20,9 @@ class CommonProp(object):
 
 
 class BoolProp(CommonProp):
-    def __init__(self, description='Some boolean object', www=None, state=None, help=None):
-        self.help = description if (help is None) else help
-        self.www = 'https://www.google.com/search?q=%s' % help if (www is None) else www
+    def __init__(self, description='Some boolean object', www=None, state=None, help_=None):
+        self.help = description if (help_ is None) else help_
+        self.www = 'https://www.google.com/search?q=%s' % help_ if (www is None) else www
         self.__doc__ = description
         if state is None:
             self.configured = False
@@ -176,13 +176,40 @@ avail_act = ['softmax Softmax activation function',
              'linear See documentation',
              ]
 
-LayerActivationAny = SelectOneProp(avail_act, description='Layer activation function',
+# https://keras.io/initializers/
+# some initializers was skipped
+avail_initializer = ['zeros Initializer that generates tensors initialized to 0',
+                     'ones Initializer that generates tensors initialized to 1',
+                     'constant Initializer that generates tensors initialized to a constant value',
+                     'normal Initializer that generates tensors with a normal distribution',
+                     'uniform Initializer that generates tensors with a uniform distribution',
+                     'truncated Initializer that generates a truncated normal distribution',
+                     'orthogonal Initializer that generates a random orthogonal matrix',
+                     'identity Initializer that generates the identity matrix',
+                     'lecun_uniform LeCun uniform initializer',
+                     'glorot_normal Glorot normal initializer, also called Xavier normal initializer',
+                     'glorot_uniform Glorot uniform initializer, also called Xavier uniform initializer',
+                     'he_normal He normal initializer',
+                     'lecun_normal LeCun normal initializer',
+                     'he_uniform He uniform variance scaling initializer',
+                     ]
+
+
+def layer_activation_any():
+    """ activation type Helper.
+    Return SelectOneProp configured for use with all available activation"""
+    return SelectOneProp(avail_act, description='Layer activation function',
                                    www=r'https://keras.io/activations/')
+
 
 RecurrentActivationAny = SelectOneProp(avail_act, description='Activation function to use\nfor the recurrent step ',
                                        www=r'https://keras.io/activations/')
 
-NumOfUnitsAny = IntRangeProp((1, 1000), "Dimensionality of\nthe output space",
+
+def num_of_units_any(max_=500):
+    """Dimensionality of the output space helper.
+    Returns IntRangeProp configured for use as Dimensionality of the output space"""
+    return IntRangeProp((1, max_), "Dimensionality of\nthe output space",
                              www=r'https://keras.io/getting-started/sequential-model-guide/#getting-started-with-the-keras-sequential-model',
                              value=3)
 
